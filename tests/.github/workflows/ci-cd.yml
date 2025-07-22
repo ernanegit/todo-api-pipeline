@@ -1,0 +1,77 @@
+name: Todo API Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+    
+    - name: Run tests
+      run: |
+        pytest tests/ -v
+    
+    - name: Test API endpoints
+      run: |
+        python app.py &
+        sleep 5
+        curl -f http://localhost:5000/health
+        kill %1
+
+  lint:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install linting tools
+      run: |
+        pip install flake8 black
+    
+    - name: Check code formatting
+      run: |
+        black --check .
+    
+    - name: Lint code
+      run: |
+        flake8 . --max-line-length=88
+
+  deploy:
+    name: Deploy (Simulation)
+    needs: [test, lint]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Simulate deployment
+      run: |
+        echo "🚀 Deploying to production..."
+        echo "✅ Application deployed successfully!"
+        echo "📊 Deployment metrics:"
+        echo "   - Version: ${{ github.sha }}"
+        echo "   - Environment: Production"
+        echo "   - Status: Active"
